@@ -3,15 +3,31 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'spec_helper'
 
 describe "DataMapper::Searchable" do
 
+  class Stable
+    include DataMapper::Resource
+  end
+
   class Cow
     include DataMapper::Resource
     include DataMapper::Searchable
 
-    property :id,        Serial
+    property :id,        Integer, :serial => true
     property :name,      String
     property :breed,     String
+    property :stable_id, Integer
+    belongs_to :stable
 
     is_searchable
+
+    auto_migrate!(:default)
+  end
+
+  class Stable
+    has n, :cows
+
+    property :id,        Integer, :serial => true
+    property :location,  String
+    property :size,      Integer
 
     auto_migrate!(:default)
   end
@@ -61,6 +77,21 @@ describe "DataMapper::Searchable" do
     cows.length.should == 0
     cows.should_not include(c1)
     cows.should_not include(c2)
+  end
+
+  it "should be able to search within collections" do
+    s = Stable.create(:name => "Hometown")
+    c1 = Cow.create(:name => "Bea", :stable_id => s.id)
+    c2 = Cow.create(:name => "Bertha")
+    c3 = Cow.create(:name => "Clara", :stable_id => s.id)
+    c4 = Cow.create(:name => "Katrien", :stable_id => s.id)
+    
+    cows = s.cows.search("r")
+    cows.length.should == 2
+    cows.should_not include(c1)
+    cows.should_not include(c2)
+    cows.should     include(c3)
+    cows.should     include(c4)
   end
 
 end
