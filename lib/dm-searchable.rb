@@ -47,7 +47,10 @@ module DataMapper
         if self.query
           options = self.query.merge(options)
         end
-        all(options.merge(:conditions => condition_list))
+        unless condition_list.empty?
+          options = options.merge(:conditions => condition_list)
+        end
+        all(options)
       end
     end
   end
@@ -55,3 +58,4 @@ end
 
 require dir / 'collection'
 require dir / 'model'
+require dir / 'proxy'

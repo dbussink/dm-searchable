@@ -3,33 +3,41 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'spec_helper'
 
 describe "DataMapper::Searchable" do
 
-  class Stable
-    include DataMapper::Resource
-  end
+  before :all do
+    class Stable
+      include DataMapper::Resource
+    end
 
-  class Cow
-    include DataMapper::Resource
-    include DataMapper::Searchable
+    class Cow
+      include DataMapper::Resource
+      include DataMapper::Searchable
 
-    property :id,        Integer, :serial => true
-    property :name,      String
-    property :breed,     String
-    property :stable_id, Integer
-    belongs_to :stable
+      property :id,        Integer, :serial => true
+      property :name,      String
+      property :breed,     String
+      property :stable_id, Integer
+      belongs_to :stable
 
-    is_searchable
+      is_searchable
 
-    auto_migrate!(:default)
-  end
+      auto_migrate!(:default)
+    end
 
-  class Stable
-    has n, :cows
+    class Stable
+      has n, :cows
 
-    property :id,        Integer, :serial => true
-    property :location,  String
-    property :size,      Integer
+      property :id,        Integer, :serial => true
+      property :location,  String
+      property :size,      Integer
 
-    auto_migrate!(:default)
+      auto_migrate!(:default)
+    end
+
+    @s = Stable.create(:name => "Hometown")
+    @c1 = Cow.create(:name => "Bea", :stable_id => @s.id)
+    @c2 = Cow.create(:name => "Bertha")
+    @c3 = Cow.create(:name => "Clara", :stable_id => @s.id)
+    @c4 = Cow.create(:name => "Katrien", :stable_id => @s.id)
   end
 
   it "is included when DataMapper::Searchable is loaded" do
@@ -60,38 +68,45 @@ describe "DataMapper::Searchable" do
   end
 
   it "should be able to search for certain objects and find them correctly" do
-    c1 = Cow.create(:name => "Bertha")
-    c2 = Cow.create(:name => "Clara")
-    
     cows = Cow.search("rth a")
     cows.length.should == 1
-    cows.should     include(c1)
-    cows.should_not include(c2)
+
+    cows.should_not include(@c1)
+    cows.should     include(@c2)
+    cows.should_not include(@c3)
+    cows.should_not include(@c4)
 
     cows = Cow.search("a")
-    cows.length.should == 2
-    cows.should     include(c1)
-    cows.should     include(c2)
+    cows.length.should == 4
+    cows.should     include(@c1)
+    cows.should     include(@c2)
+    cows.should     include(@c3)
+    cows.should     include(@c4)
 
     cows = Cow.search("x")
     cows.length.should == 0
-    cows.should_not include(c1)
-    cows.should_not include(c2)
+    cows.should_not include(@c1)
+    cows.should_not include(@c2)
+    cows.should_not include(@c3)
+    cows.should_not include(@c4)
   end
 
   it "should be able to search within collections" do
-    s = Stable.create(:name => "Hometown")
-    c1 = Cow.create(:name => "Bea", :stable_id => s.id)
-    c2 = Cow.create(:name => "Bertha")
-    c3 = Cow.create(:name => "Clara", :stable_id => s.id)
-    c4 = Cow.create(:name => "Katrien", :stable_id => s.id)
-    
-    cows = s.cows.search("r")
+    cows = @s.cows.search("r")
     cows.length.should == 2
-    cows.should_not include(c1)
-    cows.should_not include(c2)
-    cows.should     include(c3)
-    cows.should     include(c4)
+    cows.should_not include(@c1)
+    cows.should_not include(@c2)
+    cows.should     include(@c3)
+    cows.should     include(@c4)
+  end
+
+  it "should find all objects with an empty query" do
+    cows = Cow.search("")
+    cows.length.should == 4
+    cows.should     include(@c1)
+    cows.should     include(@c2)
+    cows.should     include(@c3)
+    cows.should     include(@c4)
   end
 
 end

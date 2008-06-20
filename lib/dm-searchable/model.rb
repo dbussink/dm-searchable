@@ -1,6 +1,8 @@
 module DataMapper
   module Model
-    attr_reader :searchable_fields
     include Searchable::SearchMethods
+    def searchable_fields
+      @searchable_fields
+    end
   end
 end
